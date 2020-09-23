@@ -39,6 +39,9 @@ log["DEBUG"]="BGreen"
 # keep original behaviour; hide lines that does not match any of the pattern
 : "${print_lines_not_matched:=0}"
 
+# explicit order for the patterns
+pattern_order=()
+
 # keeping the original behaviour; load config from the ctail script's directory
 CWD="$(dirname "$0")"
 if [[ -f "$CWD/ctail.config" ]]; then
@@ -96,7 +99,21 @@ colours["BICyan"]="\033[1;96m"
 colours["BIWhite"]="\033[1;97m"
 
 awk_script() {
-    for i in "${!log[@]}"; do
+    local patterns
+
+    # If a pattern order is specified, use that to iterate over the config
+    # otherwise get the keys from `log` hash variable.
+    if [ "${#pattern_order[@]}" -gt 0 ]; then
+        patterns=("${pattern_order[@]}")
+    else
+        patterns=("${!log[@]}")
+    fi
+
+    for i in "${patterns[@]}"; do
+        if [[ "${log[$i]:-}" == "" ]] || [[ "${colours[${log[$i]}]:-}" == "" ]]; then
+            continue
+        fi
+
         echo "/$i/ {print \"${colours[${log[$i]}]}\" \$0 \"\033[39m\"; next;}"
     done
 
